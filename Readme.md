@@ -26,7 +26,7 @@ meson install -C build --skip-subprojects
 ```vala
 void main() {
     // Initialisation du client (Modèle, Clé API)
-    var app = new Gemini("gemini-3.1-flash-lite-preview", "VOTRE_CLE_API");
+    var app = new Brain.create("gemini-3.1-flash-lite-preview", "VOTRE_CLE_API");
 
     try {
         // Envoi d'un message et récupération de la réponse
