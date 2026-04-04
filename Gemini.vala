@@ -1,6 +1,6 @@
 using Json;
 
-public class GeminiResponse: Response {
+public class Brain.GeminiResponse: Response {
 
 	public GeminiResponse(string data_json) throws Error {
 		base(data_json);
@@ -48,7 +48,7 @@ public class GeminiResponse: Response {
 }
 
 
-public class Gemini: HttpClient {
+public class Brain.Gemini: HttpClient {
 
     public Gemini(string model_id, string api_key) {
         this.model_id = model_id;

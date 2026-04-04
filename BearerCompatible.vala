@@ -1,4 +1,4 @@
-public class ChatApiResponse : Response {
+public class Brain.ChatApiResponse : Brain.Response {
     public ChatApiResponse(string data_json) throws Error {
         base(data_json);
     }
@@ -29,7 +29,7 @@ public class ChatApiResponse : Response {
     }
 }
 
-public class OpenAiCompatible : HttpClient {
+public class Brain.OpenAiCompatible : Brain.HttpClient {
     protected string endpoint;
 
     public OpenAiCompatible(string host, string endpoint, string model_id, string api_key) {

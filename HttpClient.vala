@@ -1,4 +1,4 @@
-public abstract class HttpClient : BrainIa {
+public abstract class Brain.HttpClient : BrainIa {
     protected string host;
     protected int port = 443;
 

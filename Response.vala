@@ -1,10 +1,10 @@
-public errordomain ResponseError {
+public errordomain Brain.ResponseError {
 	InvalidJson,
 	ApiError,
 	UnknownStructure
 }
 
-public abstract class Response {
+public abstract class Brain.Response {
 	public string data_json;
 	public string content;
 
