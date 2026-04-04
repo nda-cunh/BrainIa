@@ -1,6 +1,7 @@
 using Json;
 
 public class GeminiResponse: Response {
+
 	public GeminiResponse(string data_json) throws Error {
 		base(data_json);
 	}
@@ -47,17 +48,15 @@ public class GeminiResponse: Response {
 }
 
 
-public class Gemini: BrainIa {
+public class Gemini: HttpClient {
 
     public Gemini(string model_id, string api_key) {
         this.model_id = model_id;
         this.api_key = api_key;
+		this.host = "generativelanguage.googleapis.com";
     }
 
     public override Response? send(string prompt) throws Error {
-        var client = new SocketClient() { tls = true };
-        var conn = client.connect_to_host("generativelanguage.googleapis.com", 443);
-
 		var builder = new Json.Builder();
 			builder.begin_object();
 				builder.set_member_name("contents");
@@ -78,42 +77,17 @@ public class Gemini: BrainIa {
 		generator.set_root(builder.get_root());
 		string payload = generator.to_data(null);
 
-        StringBuilder sb = new StringBuilder();
-        sb.append (@"POST /v1beta/models/$(this.model_id):generateContent HTTP/1.1\r\n");
-        sb.append ("Host: generativelanguage.googleapis.com\r\n");
-		sb.append ("Content-Type: application/json; charset=utf-8\r\n");
-		sb.append (@"x-goog-api-key: $(this.api_key)\r\n");
-        sb.append ("Content-Length: %d\r\n".printf(payload.length));
-        sb.append ("Connection: close\r\n");
-        sb.append ("\r\n");
-        sb.append (payload);
+		var raw = send_request(
+			"POST",
+			"/v1beta/models/%s:generateContent".printf(this.model_id),
+			{
+				"Content-Type: application/json",
+				@"x-goog-api-key: $(this.api_key)"
+			},
+			payload
+		);
 
-        conn.output_stream.write_all(sb.str.data, null);
-        conn.output_stream.flush();
-
-        var input = new DataInputStream(conn.input_stream);
-        StringBuilder full_response = new StringBuilder();
-        uint8 buffer[4096];
-        size_t bytes_read;
-
-		try {
-			while ((bytes_read = input.read(buffer)) > 0) {
-				buffer[bytes_read] = '\0';
-				full_response.append_len((string)buffer, (long)bytes_read);
-			}
-		}
-		catch (Error e) {
-		}
-        
-        string raw = full_response.str;
-        int json_start = raw.index_of("{");
-        if (json_start == -1)
-			return null;
-        
-        string json_data = raw.substring(json_start);
-
-		var res = new GeminiResponse(json_data);
-		return res;
+		return new GeminiResponse(raw._strip());
     }
 
 }

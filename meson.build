@@ -16,6 +16,7 @@ sources = files(
   'Gemini.vala',
   'Glm.vala',
   'Mistral.vala',
+  'HttpClient.vala',
   'OpenAi.vala',
   'Response.vala',
 )
