@@ -3,7 +3,7 @@ void main()
 	Intl.setlocale();
 
 	try {
-		var app = new Gemini("gemma-3-27b-it", "API_KEY");
+		var app = Brain.create("gemma-3-27b-it", "Your_API_KEY");
 		var result = app.send("Salut comment tu t'appelles ?");
 		print ("%s\n", result.content);
 	}

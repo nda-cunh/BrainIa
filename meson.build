@@ -13,10 +13,11 @@ dependencies = [
 sources = files(
   'BearerCompatible.vala',
   'BrainIa.vala',
+  'Default.vala',
   'Gemini.vala',
   'Glm.vala',
-  'Mistral.vala',
   'HttpClient.vala',
+  'Mistral.vala',
   'OpenAi.vala',
   'Response.vala',
 )
