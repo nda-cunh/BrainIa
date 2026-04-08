@@ -55,7 +55,12 @@ public class Brain.OpenAiCompatible : Brain.HttpClient {
             builder.end_array();
         builder.end_object();
 
-        string payload = (new Json.Generator() { root = builder.get_root() }).to_data(null);
+		var json_generator = new Json.Generator() {
+			root = builder.get_root(),
+			pretty = false,
+		};
+
+        string payload = (json_generator.to_data(null));
 
 		var raw = send_request(
 			"POST",
