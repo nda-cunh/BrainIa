@@ -61,6 +61,9 @@ public class Brain.OpenAiCompatible : Brain.HttpClient {
 		};
 
         string payload = (json_generator.to_data(null));
+		var payload_utf8 = payload.make_valid();
+
+		debug("Payload JSON envoyé : %s", payload_utf8);
 
 		var raw = send_request(
 			"POST",
@@ -69,7 +72,7 @@ public class Brain.OpenAiCompatible : Brain.HttpClient {
 				"Content-Type: application/json",
 				"Authorization: Bearer " + this.api_key,
 			},
-			payload
+			payload_utf8
 		);
 
         return new ChatApiResponse(raw);

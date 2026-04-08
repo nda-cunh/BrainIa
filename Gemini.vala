@@ -73,9 +73,13 @@ public class Brain.Gemini: HttpClient {
 				builder.end_array();
 			builder.end_object();
 
-		var generator = new Json.Generator();
-		generator.set_root(builder.get_root());
-		string payload = generator.to_data(null);
+		var json_generator = new Json.Generator() {
+			root = builder.get_root(),
+			pretty = false,
+		};
+
+		string payload = (json_generator.to_data(null));
+		var payload_utf8 = payload.make_valid();
 
 		var raw = send_request(
 			"POST",
@@ -84,7 +88,7 @@ public class Brain.Gemini: HttpClient {
 				"Content-Type: application/json",
 				@"x-goog-api-key: $(this.api_key)"
 			},
-			payload
+			payload_utf8
 		);
 
 		return new GeminiResponse(raw._strip());
