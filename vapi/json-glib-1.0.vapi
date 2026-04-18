@@ -97,6 +97,8 @@ namespace Json {
 		[Version (since = "0.14")]
 		public void set_pretty (bool is_pretty);
 		public void set_root (Json.Node node);
+		[Version (since = "1.10")]
+		public void take_root (owned Json.Node? node);
 		public string to_data (out size_t length);
 		public bool to_file (string filename) throws GLib.Error;
 		[Version (since = "1.4")]
@@ -252,6 +254,8 @@ namespace Json {
 		public uint get_current_line ();
 		public uint get_current_pos ();
 		public unowned Json.Node? get_root ();
+		[Version (since = "1.10")]
+		public bool get_strict ();
 		[Version (since = "0.4")]
 		public bool has_assignment (out unowned string variable_name);
 		[CCode (has_construct_function = false)]
@@ -265,16 +269,29 @@ namespace Json {
 		public bool load_from_stream (GLib.InputStream stream, GLib.Cancellable? cancellable = null) throws GLib.Error;
 		[Version (since = "0.12")]
 		public async bool load_from_stream_async (GLib.InputStream stream, GLib.Cancellable? cancellable) throws GLib.Error;
+		[Version (since = "1.10")]
+		public void set_strict (bool strict);
 		[Version (since = "1.4")]
 		public Json.Node? steal_root ();
+		[Version (since = "1.10")]
+		public bool strict { get; set; }
+		[Version (deprecated = true, deprecated_since = "1.10")]
 		public virtual signal void array_element (Json.Array array, int index_);
+		[Version (deprecated = true, deprecated_since = "1.10")]
 		public virtual signal void array_end (Json.Array array);
+		[Version (deprecated = true, deprecated_since = "1.10")]
 		public virtual signal void array_start ();
+		[Version (deprecated = true, deprecated_since = "1.10")]
 		public virtual signal void error (void* error);
+		[Version (deprecated = true, deprecated_since = "1.10")]
 		public virtual signal void object_end (Json.Object object);
+		[Version (deprecated = true, deprecated_since = "1.10")]
 		public virtual signal void object_member (Json.Object object, string member_name);
+		[Version (deprecated = true, deprecated_since = "1.10")]
 		public virtual signal void object_start ();
+		[Version (deprecated = true, deprecated_since = "1.10")]
 		public virtual signal void parse_end ();
+		[Version (deprecated = true, deprecated_since = "1.10")]
 		public virtual signal void parse_start ();
 	}
 	[CCode (cheader_filename = "json-glib/json-glib.h", type_id = "json_path_get_type ()")]
@@ -296,6 +313,8 @@ namespace Json {
 		public void end_element ();
 		public void end_member ();
 		public bool get_boolean_value ();
+		[Version (since = "1.8")]
+		public unowned Json.Node? get_current_node ();
 		public double get_double_value ();
 		public unowned GLib.Error? get_error ();
 		public int64 get_int_value ();
@@ -330,7 +349,7 @@ namespace Json {
 		[CCode (array_length_pos = 0.1, array_length_type = "guint")]
 		[Version (since = "0.14")]
 		public (unowned GLib.ParamSpec)[] list_properties ();
-		public abstract Json.Node serialize_property (string property_name, GLib.Value value, GLib.ParamSpec pspec);
+		public abstract Json.Node? serialize_property (string property_name, GLib.Value value, GLib.ParamSpec pspec);
 		[Version (since = "0.14")]
 		public abstract void set_property (GLib.ParamSpec pspec, GLib.Value value);
 	}
@@ -358,9 +377,17 @@ namespace Json {
 		MISSING_COMMA,
 		MISSING_COLON,
 		INVALID_BAREWORD,
+		[Version (since = "0.16")]
 		EMPTY_MEMBER_NAME,
+		[Version (since = "0.18")]
 		INVALID_DATA,
-		UNKNOWN;
+		UNKNOWN,
+		[Version (since = "1.10")]
+		NESTING,
+		[Version (since = "1.10")]
+		INVALID_STRUCTURE,
+		[Version (since = "1.10")]
+		INVALID_ASSIGNMENT;
 		public static GLib.Quark quark ();
 	}
 	[CCode (cheader_filename = "json-glib/json-glib.h", cprefix = "JSON_PATH_ERROR_INVALID_", type_id = "json_path_error_get_type ()")]
@@ -399,6 +426,9 @@ namespace Json {
 	public const int MICRO_VERSION;
 	[CCode (cheader_filename = "json-glib/json-glib.h", cname = "JSON_MINOR_VERSION")]
 	public const int MINOR_VERSION;
+	[CCode (cheader_filename = "json-glib/json-glib.h", cname = "JSON_PARSER_MAX_RECURSION_DEPTH")]
+	[Version (since = "1.10")]
+	public const int PARSER_MAX_RECURSION_DEPTH;
 	[CCode (cheader_filename = "json-glib/json-glib.h", cname = "JSON_VERSION_S")]
 	public const string VERSION_S;
 	[CCode (cheader_filename = "json-glib/json-glib.h")]

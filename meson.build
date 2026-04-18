@@ -3,6 +3,8 @@ project('brainlib', 'vala', meson_version : '>= 1.0.0', version : '0.1',)
 vapi_dir = meson.current_source_dir() / 'vapi'
 add_project_arguments(['--vapidir', vapi_dir], language: 'vala')
 
+add_project_arguments(['--pkg', 'json-glib-1.0'], language: 'vala')
+
 dependencies = [
   dependency('gio-2.0'),
   dependency('glib-2.0'),
