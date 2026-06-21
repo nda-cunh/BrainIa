@@ -6,7 +6,7 @@ public abstract class Brain.HttpClient : BrainIa {
         var client = new SocketClient() { tls = true };
         var conn = client.connect_to_host(this.host, (uint16)this.port);
 
-        StringBuilder request = new StringBuilder();
+        var request = new StringBuilder();
         request.append("%s %s HTTP/1.1\r\n".printf(method, endpoint));
         request.append("Host: %s\r\n".printf(this.host));
         foreach (var header in headers) {

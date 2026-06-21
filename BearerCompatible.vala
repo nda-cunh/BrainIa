@@ -10,19 +10,26 @@ public class Brain.ChatApiResponse : Brain.Response {
         if (start == -1 || end == -1) throw new ResponseError.InvalidJson("Format JSON invalide");
 
         string clean_json = raw_data.substring(start, end - start + 1);
-        var parser = new Json.Parser();
-        parser.load_from_data(clean_json, -1);
-        var root = parser.get_root().get_object();
+        var doc = YYJson.Doc.read(clean_json, clean_json.length);
+        if (doc == null) throw new ResponseError.InvalidJson("Format JSON invalide");
+        unowned var root = doc.get_root();
 
-        if (root.has_member("error")) {
-            var err = root.get_object_member("error");
-            throw new ResponseError.ApiError("Erreur API: %s", err.get_string_member("message"));
+        unowned var error_val = root.obj_get("error");
+        if (error_val != null) {
+            unowned var msg = error_val.obj_get("message");
+            throw new ResponseError.ApiError("Erreur API: %s", msg != null ? msg.get_str() : "unknown");
         }
 
-        if (root.has_member("choices")) {
-            var choices = root.get_array_member("choices");
-            var message = choices.get_object_element(0).get_object_member("message");
-            return message.get_string_member("content");
+        unowned var choices = root.obj_get("choices");
+        if (choices != null) {
+            unowned var first = choices.arr_get(0);
+            if (first != null) {
+                unowned var message = first.obj_get("message");
+                if (message != null) {
+                    unowned var content = message.obj_get("content");
+                    if (content != null) return content.get_str();
+                }
+            }
         }
 
         throw new ResponseError.UnknownStructure("Structure JSON inconnue");
@@ -40,40 +47,30 @@ public class Brain.OpenAiCompatible : Brain.HttpClient {
     }
 
     public override Response? send(string prompt) throws Error {
-        var builder = new Json.Builder();
-        builder.begin_object();
-            builder.set_member_name("model");
-            builder.add_string_value(this.model_id);
-            builder.set_member_name("messages");
-            builder.begin_array();
-                builder.begin_object();
-                    builder.set_member_name("role");
-                    builder.add_string_value("user");
-                    builder.set_member_name("content");
-                    builder.add_string_value(prompt);
-                builder.end_object();
-            builder.end_array();
-        builder.end_object();
+        var doc = new YYJson.MutDoc();
+        unowned var root = doc.obj();
+        root.obj_add_str(doc, "model", this.model_id);
+        unowned var messages = root.obj_add_arr(doc, "messages");
+        unowned var msg_obj = messages.arr_add_obj(doc);
+        msg_obj.obj_add_str(doc, "role", "user");
+        msg_obj.obj_add_str(doc, "content", prompt);
+        doc.set_root(root);
 
-		var json_generator = new Json.Generator() {
-			root = builder.get_root(),
-			pretty = false,
-		};
+        string? payload = doc.write();
+        if (payload == null) throw new ResponseError.InvalidJson("Erreur de sérialisation JSON");
+        var payload_utf8 = payload.make_valid();
 
-        string payload = (json_generator.to_data(null));
-		var payload_utf8 = payload.make_valid();
+        debug("Payload JSON envoyé : %s", payload_utf8);
 
-		debug("Payload JSON envoyé : %s", payload_utf8);
-
-		var raw = send_request(
-			"POST",
-			this.endpoint,
-			{
-				"Content-Type: application/json",
-				"Authorization: Bearer " + this.api_key,
-			},
-			payload_utf8
-		);
+        var raw = send_request(
+            "POST",
+            this.endpoint,
+            {
+                "Content-Type: application/json",
+                "Authorization: Bearer " + this.api_key,
+            },
+            payload_utf8
+        );
 
         return new ChatApiResponse(raw);
     }

@@ -1,50 +1,50 @@
-using Json;
-
 public class Brain.GeminiResponse: Response {
 
-	public GeminiResponse(string data_json) throws Error {
-		base(data_json);
-	}
+    public GeminiResponse(string data_json) throws Error {
+        base(data_json);
+    }
 
-	public override string parse_text_from_json(string raw_data) throws Error {
-		int start = raw_data.index_of("{");
-		int end = raw_data.last_index_of("}");
+    public override string parse_text_from_json(string raw_data) throws Error {
+        int start = raw_data.index_of("{");
+        int end = raw_data.last_index_of("}");
 
-		if (start == -1 || end == -1 || end < start) {
-			throw new ResponseError.InvalidJson("Invalid JSON format: %s", raw_data);
-		}
+        if (start == -1 || end == -1 || end < start) {
+            throw new ResponseError.InvalidJson("Invalid JSON format: %s", raw_data);
+        }
 
-		string clean_json = raw_data.substring(start, end - start + 1);
+        string clean_json = raw_data.substring(start, end - start + 1);
+        var doc = YYJson.Doc.read(clean_json, clean_json.length);
+        if (doc == null) throw new ResponseError.InvalidJson("Invalid JSON format: %s", raw_data);
+        unowned var root = doc.get_root();
 
-		var parser = new Json.Parser();
-		parser.load_from_data(clean_json, -1);
-		var root = parser.get_root().get_object();
+        unowned var error_val = root.obj_get("error");
+        if (error_val != null) {
+            unowned var msg = error_val.obj_get("message");
+            unowned var code_val = error_val.obj_get("code");
+            int code = code_val != null ? code_val.get_int() : 0;
+            throw new ResponseError.ApiError("API Error %d: %s", code, msg != null ? msg.get_str() : "unknown");
+        }
 
-		// If the API returned an error, extract and return the error message
-		if (root.has_member("error")) {
-			var error_node = root.get_object_member("error");
-			string message = error_node.get_string_member("message");
-			int code = (int)error_node.get_int_member("code");
-			throw new ResponseError.ApiError("API Error %d: %s", code, message);
-		}
+        unowned var candidates = root.obj_get("candidates");
+        if (candidates != null && candidates.arr_size() > 0) {
+            unowned var first = candidates.arr_get(0);
+            if (first != null) {
+                unowned var content = first.obj_get("content");
+                if (content != null) {
+                    unowned var parts = content.obj_get("parts");
+                    if (parts != null && parts.arr_size() > 0) {
+                        unowned var part = parts.arr_get(0);
+                        if (part != null) {
+                            unowned var text = part.obj_get("text");
+                            if (text != null) return text.get_str();
+                        }
+                    }
+                }
+            }
+        }
 
-		// If the content is present, extract and return it
-		if (root.has_member("candidates")) {
-			var candidates = root.get_array_member("candidates");
-			if (candidates.get_length() > 0) {
-				var first_candidate = candidates.get_object_element(0);
-				if (first_candidate.has_member("content")) {
-					var content_node = first_candidate.get_object_member("content");
-					var parts = content_node.get_array_member("parts");
-					if (parts.get_length() > 0) {
-						return parts.get_object_element(0).get_string_member("text");
-					}
-				}
-			}
-		}
-
-		throw new ResponseError.UnknownStructure("Unrecognized JSON structure %s", clean_json);
-	}
+        throw new ResponseError.UnknownStructure("Unrecognized JSON structure %s", clean_json);
+    }
 }
 
 
@@ -53,45 +53,34 @@ public class Brain.Gemini: HttpClient {
     public Gemini(string model_id, string api_key) {
         this.model_id = model_id;
         this.api_key = api_key;
-		this.host = "generativelanguage.googleapis.com";
+        this.host = "generativelanguage.googleapis.com";
     }
 
     public override Response? send(string prompt) throws Error {
-		var builder = new Json.Builder();
-			builder.begin_object();
-				builder.set_member_name("contents");
-				builder.begin_array();
-					builder.begin_object();
-						builder.set_member_name("parts");
-						builder.begin_array();
-							builder.begin_object();
-								builder.set_member_name("text");
-								builder.add_string_value(prompt);
-							builder.end_object();
-						builder.end_array();
-					builder.end_object();
-				builder.end_array();
-			builder.end_object();
+        var doc = new YYJson.MutDoc();
+        unowned var root = doc.obj();
+        unowned var contents = root.obj_add_arr(doc, "contents");
+        unowned var content_obj = contents.arr_add_obj(doc);
+        unowned var parts = content_obj.obj_add_arr(doc, "parts");
+        unowned var part_obj = parts.arr_add_obj(doc);
+        part_obj.obj_add_str(doc, "text", prompt);
+        doc.set_root(root);
 
-		var json_generator = new Json.Generator() {
-			root = builder.get_root(),
-			pretty = false,
-		};
+        string? payload = doc.write();
+        if (payload == null) throw new ResponseError.InvalidJson("Erreur de sérialisation JSON");
+        var payload_utf8 = payload.make_valid();
 
-		string payload = (json_generator.to_data(null));
-		var payload_utf8 = payload.make_valid();
+        var raw = send_request(
+            "POST",
+            "/v1beta/models/%s:generateContent".printf(this.model_id),
+            {
+                "Content-Type: application/json",
+                @"x-goog-api-key: $(this.api_key)"
+            },
+            payload_utf8
+        );
 
-		var raw = send_request(
-			"POST",
-			"/v1beta/models/%s:generateContent".printf(this.model_id),
-			{
-				"Content-Type: application/json",
-				@"x-goog-api-key: $(this.api_key)"
-			},
-			payload_utf8
-		);
-
-		return new GeminiResponse(raw._strip());
+        return new GeminiResponse(raw._strip());
     }
 
 }
