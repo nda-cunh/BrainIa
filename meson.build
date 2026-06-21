@@ -6,10 +6,10 @@ add_project_arguments(['--vapidir', vapi_dir], language: 'vala')
 add_project_arguments(['--pkg', 'yyjson'], language: 'vala')
 
 dependencies = [
-  dependency('gio-2.0'),
   dependency('glib-2.0'),
   dependency('gobject-2.0'),
-  dependency('yyjson')
+  dependency('gio-2.0'),
+  dependency('yyjson', static: true)
 ]
 
 sources = files(
