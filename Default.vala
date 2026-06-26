@@ -19,6 +19,8 @@ namespace Brain {
 			case "ministral":
 			case "pixtral":
 				return new Mistral(model_id, api_key);
+			case "claude":
+				return new Anthropic(model_id, api_key);
 			default:
 			case "gpt":
 			case "o1":

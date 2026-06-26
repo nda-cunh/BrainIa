@@ -13,6 +13,7 @@ dependencies = [
 ]
 
 sources = files(
+  'Anthropic.vala',
   'BearerCompatible.vala',
   'BrainIa.vala',
   'Default.vala',
