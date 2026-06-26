@@ -57,13 +57,14 @@ public class Brain.Gemini: HttpClient {
     }
 
     public override Response? send(string prompt) throws Error {
+        var safe_prompt = prompt.make_valid();
         var doc = new YYJson.MutDoc();
         unowned var root = doc.obj();
         unowned var contents = root.obj_add_arr(doc, "contents");
         unowned var content_obj = contents.arr_add_obj(doc);
         unowned var parts = content_obj.obj_add_arr(doc, "parts");
         unowned var part_obj = parts.arr_add_obj(doc);
-        part_obj.obj_add_str(doc, "text", prompt);
+        part_obj.obj_add_str(doc, "text", safe_prompt);
         doc.set_root(root);
 
         string? payload = doc.write();

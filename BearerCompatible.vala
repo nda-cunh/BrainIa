@@ -47,13 +47,14 @@ public class Brain.OpenAiCompatible : Brain.HttpClient {
     }
 
     public override Response? send(string prompt) throws Error {
+        var safe_prompt = prompt.make_valid();
         var doc = new YYJson.MutDoc();
         unowned var root = doc.obj();
         root.obj_add_str(doc, "model", this.model_id);
         unowned var messages = root.obj_add_arr(doc, "messages");
         unowned var msg_obj = messages.arr_add_obj(doc);
         msg_obj.obj_add_str(doc, "role", "user");
-        msg_obj.obj_add_str(doc, "content", prompt);
+        msg_obj.obj_add_str(doc, "content", safe_prompt);
         doc.set_root(root);
 
         string? payload = doc.write();
