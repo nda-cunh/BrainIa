@@ -7,18 +7,14 @@ public class Brain.ChatApiResponse : Brain.Response {
         int start = raw_data.index_of("{");
         int end = raw_data.last_index_of("}");
 
-        if (start == -1 || end == -1) throw new ResponseError.InvalidJson("Format JSON invalide");
+        if (start == -1 || end == -1) throw new ResponseError.InvalidJson("Invalid JSON format");
 
         string clean_json = raw_data.substring(start, end - start + 1);
         var doc = YYJson.Doc.read(clean_json, clean_json.length);
-        if (doc == null) throw new ResponseError.InvalidJson("Format JSON invalide");
+        if (doc == null) throw new ResponseError.InvalidJson("Invalid JSON format");
         unowned var root = doc.get_root();
 
-        unowned var error_val = root.obj_get("error");
-        if (error_val != null) {
-            unowned var msg = error_val.obj_get("message");
-            throw new ResponseError.ApiError("Erreur API: %s", msg != null ? msg.get_str() : "unknown");
-        }
+        check_api_error(root);
 
         unowned var choices = root.obj_get("choices");
         if (choices != null) {
@@ -32,7 +28,7 @@ public class Brain.ChatApiResponse : Brain.Response {
             }
         }
 
-        throw new ResponseError.UnknownStructure("Structure JSON inconnue");
+        throw new ResponseError.UnknownStructure("Unrecognized JSON structure: %s", clean_json);
     }
 }
 
@@ -58,10 +54,10 @@ public class Brain.OpenAiCompatible : Brain.HttpClient {
         doc.set_root(root);
 
         string? payload = doc.write();
-        if (payload == null) throw new ResponseError.InvalidJson("Erreur de sérialisation JSON");
+        if (payload == null) throw new ResponseError.InvalidJson("JSON serialization failed");
         var payload_utf8 = payload.make_valid();
 
-        debug("Payload JSON envoyé : %s", payload_utf8);
+        debug("JSON payload sent: %s", payload_utf8);
 
         var raw = send_request(
             "POST",

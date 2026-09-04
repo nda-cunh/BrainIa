@@ -17,13 +17,7 @@ public class Brain.GeminiResponse: Response {
         if (doc == null) throw new ResponseError.InvalidJson("Invalid JSON format: %s", raw_data);
         unowned var root = doc.get_root();
 
-        unowned var error_val = root.obj_get("error");
-        if (error_val != null) {
-            unowned var msg = error_val.obj_get("message");
-            unowned var code_val = error_val.obj_get("code");
-            int code = code_val != null ? code_val.get_int() : 0;
-            throw new ResponseError.ApiError("API Error %d: %s", code, msg != null ? msg.get_str() : "unknown");
-        }
+        check_api_error(root);
 
         unowned var candidates = root.obj_get("candidates");
         if (candidates != null && candidates.arr_size() > 0) {
@@ -43,7 +37,7 @@ public class Brain.GeminiResponse: Response {
             }
         }
 
-        throw new ResponseError.UnknownStructure("Unrecognized JSON structure %s", clean_json);
+        throw new ResponseError.UnknownStructure("Unrecognized JSON structure: %s", clean_json);
     }
 }
 
@@ -68,7 +62,7 @@ public class Brain.Gemini: HttpClient {
         doc.set_root(root);
 
         string? payload = doc.write();
-        if (payload == null) throw new ResponseError.InvalidJson("Erreur de sérialisation JSON");
+        if (payload == null) throw new ResponseError.InvalidJson("JSON serialization failed");
         var payload_utf8 = payload.make_valid();
 
         var raw = send_request(
