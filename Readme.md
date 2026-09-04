@@ -17,19 +17,23 @@ into your `subprojects/` directory:
 
 ```ini
 # subprojects/brainlib.wrap
-[wrap-git]
-url = https://gitlab.com/nda-cunh/brainlib.git
-revision = HEAD
-depth = 1
+[wrap-file]
+directory = brainlib-1.0
+source_url = https://gitlab.com/nda-cunh/brainlib/-/archive/1.0/brainlib-1.0.tar.gz
+source_filename = brainlib-1.0.tar.gz
+source_hash = 53f7e68e9f3ebf1e9942a9df05e0c215e4efdfebbdaf55593ee7ed22a7923f07
 
 [provide]
 dependency_names = BrainLib
 ```
 
-Pin `revision` to a release tag (e.g. `revision = 1.0`) instead of `HEAD` if you want
-reproducible builds.
+Or grab it straight from the repository:
 
-Then simply ask for the dependency in your `meson.build`; Meson clones and builds the
+```bash
+curl -L -o subprojects/brainlib.wrap https://gitlab.com/nda-cunh/brainlib/-/raw/master/brainlib.wrap
+```
+
+Then simply ask for the dependency in your `meson.build`; Meson downloads and builds the
 subproject on demand:
 
 ```meson

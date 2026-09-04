@@ -1,0 +1,8 @@
+[wrap-file]
+directory = brainlib-1.0
+source_url = https://gitlab.com/nda-cunh/brainlib/-/archive/1.0/brainlib-1.0.tar.gz
+source_filename = brainlib-1.0.tar.gz
+source_hash = 53f7e68e9f3ebf1e9942a9df05e0c215e4efdfebbdaf55593ee7ed22a7923f07
+
+[provide]
+dependency_names = BrainLib
