@@ -1,4 +1,4 @@
-project('brainlib', 'vala', 'c', meson_version : '>= 1.0.0', version : '0.1',)
+project('brainlib', 'vala', 'c', meson_version : '>= 1.0.0', version : '1.0',)
 
 vapi_dir = meson.current_source_dir() / 'vapi'
 add_project_arguments(['--vapidir', vapi_dir], language: 'vala')

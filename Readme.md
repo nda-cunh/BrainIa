@@ -1,48 +1,86 @@
 # 🧠 BrainLib
 
-BrainLib est une bibliothèque en Vala conçue pour simplifier l'intégration d'Intelligences Artificielles.
-Elle offre une interface unifiée pour communiquer avec les API des plus grands modèles (Gemini, OpenAI, Mistral, GLM) tout en restant légère et performante.
+BrainLib is a Vala library designed to simplify the integration of Artificial Intelligence.
+It provides a unified interface to communicate with the APIs of the major models (Gemini, OpenAI, Anthropic, Mistral, GLM) while remaining lightweight and fast.
 
-## ✨ Caractéristiques
+## ✨ Features
 
-- Multi-Fournisseurs : Support natif pour Gemini, OpenAI, Mistral et GLM.
-- Interface Unifiée : Une seule méthode send() pour interagir avec n'importe quel modèle
-- Multi-Language: Grace a Gobject-Introspection, BrainLib est utilisable depuis n'importe quel langage supportant les bindings GObject (Python, C, Rust, etc.)
+- Multi-Provider: Native support for Gemini, OpenAI, Anthropic, Mistral and GLM.
+- Unified Interface: A single `send()` method to interact with any model.
+- Automatic Routing: The provider is picked from the model id, no extra configuration.
+- Multi-Language: Thanks to GObject-Introspection, BrainLib can be used from any language supporting GObject bindings (Python, C, Rust, etc.)
 
-## 🚀 Installation
+## 📦 Adding BrainLib to your project
 
-Le projet utilise le système de construction Meson
+BrainLib is meant to be consumed as a Meson subproject. Drop a `brainlib.wrap` file
+into your `subprojects/` directory:
 
-```bash
-# Cloner le dépôt
-git clone https://gitlab.com/nda-cunh/brainlib
-cd brainlib
-meson build --prefix=/usr
-meson install -C build --skip-subprojects
+```ini
+# subprojects/brainlib.wrap
+[wrap-git]
+url = https://gitlab.com/nda-cunh/brainlib.git
+revision = HEAD
+depth = 1
+
+[provide]
+dependency_names = BrainLib
 ```
 
-# 💻 Exemple d'utilisation
+Pin `revision` to a release tag (e.g. `revision = 1.0`) instead of `HEAD` if you want
+reproducible builds.
+
+Then simply ask for the dependency in your `meson.build`; Meson clones and builds the
+subproject on demand:
+
+```meson
+project('myapp', 'vala', 'c')
+
+brainlib_dep = dependency('BrainLib')
+
+executable('myapp',
+  'main.vala',
+  dependencies : [
+    dependency('glib-2.0'),
+    dependency('gobject-2.0'),
+    dependency('gio-2.0'),
+    brainlib_dep,
+  ],
+)
+```
+
+```bash
+meson setup build
+meson compile -C build
+```
+
+# 💻 Usage Example
 
 ```vala
 void main() {
-    // Initialisation du client (Modèle, Clé API)
-    var app = new Brain.create("gemini-3.1-flash-lite-preview", "VOTRE_CLE_API");
+    // Client creation (Model, API Key)
+    var app = Brain.create("gemini-3.1-flash-lite-preview", "YOUR_API_KEY");
 
     try {
-        // Envoi d'un message et récupération de la réponse
-        var response = app.send("Salut mec comment tu vas ?");
-        print ("IA : %s\n", response.content);
+        // Send a message and get the response
+        var response = app.send("Hey there, how are you doing?");
+        print ("AI : %s\n", response.content);
     }
     catch (Error e) {
-        // Gestion des erreurs réseau ou API
-        print ("Erreur : %s\n", e.message);
+        // Network or API error handling
+        print ("Error : %s\n", e.message);
     }
 }
 ```
 
-| Modèles supportés | Fournisseur |
-| ----------------- | ----------- |
-|      Gemini       |   Google    |
-|      OpenAi       |   OpenAI    |
-|      Mistral      |   Mistral   |
-|      AIGlm        |   Zhipu-AI  |
+## 🤖 Supported models
+
+The provider is deduced from the model id prefix, so any model of a supported
+provider works, even a brand new one.
+
+| Model id prefix                                | Provider  | Class     |
+| ---------------------------------------------- | --------- | --------- |
+| `gemini-*`, `gemma-*`                            | Google    | `Gemini`    |
+| `gpt-*`, `o1-*` (and any unknown id)             | OpenAI    | `OpenAi`    |
+| `claude-*`                                       | Anthropic | `Anthropic` |
+| `mistral-*`, `ministral-*`, `pixtral-*`, `codestral-*` | Mistral   | `Mistral`   |
+| `glm-*`                                          | Zhipu-AI  | `Glm`       |
