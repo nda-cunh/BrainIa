@@ -40,7 +40,7 @@ public class Brain.Anthropic : Brain.HttpClient {
         this.api_key = api_key;
     }
 
-    public override Response? send(string prompt) throws Error {
+    protected override string[] build_request(string prompt, out string endpoint, out string body) throws Error {
         var safe_prompt = prompt.make_valid();
         var doc = new YYJson.MutDoc();
         unowned var root = doc.obj();
@@ -55,17 +55,16 @@ public class Brain.Anthropic : Brain.HttpClient {
         string? payload = doc.write();
         if (payload == null) throw new ResponseError.InvalidJson("JSON serialization failed");
 
-        var raw = send_request(
-            "POST",
-            "/v1/messages",
-            {
-                "Content-Type: application/json",
-                "x-api-key: " + this.api_key,
-                "anthropic-version: " + ANTHROPIC_VERSION,
-            },
-            payload
-        );
+        endpoint = "/v1/messages";
+        body = payload;
+        return {
+            "Content-Type: application/json",
+            "x-api-key: " + this.api_key,
+            "anthropic-version: " + ANTHROPIC_VERSION,
+        };
+    }
 
+    protected override Response parse_response(string raw) throws Error {
         return new AnthropicResponse(raw);
     }
 }

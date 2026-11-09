@@ -6,7 +6,7 @@ It provides a unified interface to communicate with the APIs of the major models
 ## ✨ Features
 
 - Multi-Provider: Native support for Gemini, OpenAI, Anthropic, Mistral and GLM.
-- Unified Interface: A single `send()` method to interact with any model.
+- Unified Interface: A single `send()` method to interact with any model, and `send_async()` for non-blocking, cancellable requests.
 - Automatic Routing: The provider is picked from the model id, no extra configuration.
 - Multi-Language: Thanks to GObject-Introspection, BrainLib can be used from any language supporting GObject bindings (Python, C, Rust, etc.)
 
@@ -74,6 +74,36 @@ void main() {
         print ("Error : %s\n", e.message);
     }
 }
+```
+
+## ⚡ Asynchronous requests
+
+`send_async()` does not block the main loop and can be cancelled at any time
+(the connection is closed and `IOError.CANCELLED` is thrown):
+
+```vala
+var app = Brain.create("gpt-4o-mini", "YOUR_API_KEY");
+var cancellable = new Cancellable();
+
+app.send_async.begin("Hello!", cancellable, (obj, res) => {
+    try {
+        print("AI : %s\n", app.send_async.end(res).content);
+    }
+    catch (Error e) {
+        print("Error : %s\n", e.message);
+    }
+});
+// cancellable.cancel(); to abort the request
+```
+
+## 🔑 Picking the API key
+
+`Brain.provider_of()` tells which provider `create()` will use for a model, so you
+can choose the matching key beforehand:
+
+```vala
+var provider = Brain.provider_of("claude-sonnet-4-5"); // Brain.Provider.ANTHROPIC
+print("%s\n", provider.get_id());                       // "anthropic"
 ```
 
 ## 🤖 Supported models

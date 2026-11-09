@@ -3,6 +3,38 @@ public abstract class Brain.HttpClient : BrainIa {
     protected int port = 443;
 
     /**
+    * Build the request of a prompt, specific to each provider.
+    * @param prompt The message to send.
+    * @param endpoint The path to request on the host.
+    * @param body The JSON body to send.
+    * @return The headers of the request.
+    * @throws Error If the payload cannot be serialized.
+    */
+    protected abstract string[] build_request(string prompt, out string endpoint, out string body) throws Error;
+
+    /**
+    * Parse the body answered by the API, specific to each provider.
+    * @param raw The body of the response, headers stripped.
+    * @return The response of the model.
+    * @throws Error If the API answered an error or an unknown structure.
+    */
+    protected abstract Response parse_response(string raw) throws Error;
+
+    public override Response? send(string prompt) throws Error {
+        string endpoint, body;
+        var headers = build_request(prompt, out endpoint, out body);
+        var raw = send_request("POST", endpoint, headers, body);
+        return parse_response(raw);
+    }
+
+    public override async Response? send_async(string prompt, Cancellable? cancellable = null) throws Error {
+        string endpoint, body;
+        var headers = build_request(prompt, out endpoint, out body);
+        var raw = yield send_request_async("POST", endpoint, headers, body, cancellable);
+        return parse_response(raw);
+    }
+
+    /**
     * Send an HTTPS request and return the body of the response.
     * @param method The HTTP method to use.
     * @param endpoint The path to request on the host.
@@ -15,6 +47,67 @@ public abstract class Brain.HttpClient : BrainIa {
         var client = new SocketClient() { tls = true };
         var conn = client.connect_to_host(this.host, (uint16)this.port);
 
+        conn.output_stream.write_all(build_http_request(method, endpoint, headers, body).data, null);
+
+        var input = conn.input_stream;
+        var response = new StringBuilder();
+        uint8 buffer[4096];
+        ssize_t bytes;
+
+        try {
+            while ((bytes = input.read(buffer)) > 0) {
+                response.append_len((string)buffer, (long)bytes);
+            }
+        }
+        catch (Error e) {
+            // the server may close the TLS connection abruptly once everything is sent
+        }
+
+        return parse_http_response(response);
+    }
+
+    /**
+    * Non-blocking version of send_request(): connection, write and read are
+    * asynchronous, and cancellable aborts the request at any moment.
+    * @param method The HTTP method to use.
+    * @param endpoint The path to request on the host.
+    * @param headers The headers to append to the request.
+    * @param body The body to send.
+    * @param cancellable Abort the request; it then throws IOError.CANCELLED.
+    * @return The decoded body of the response, headers stripped.
+    * @throws Error If the connection fails, the request is cancelled or the server answers an error without a JSON body.
+    */
+    protected async string send_request_async(string method, string endpoint, string[] headers, string body, Cancellable? cancellable = null) throws Error {
+        var client = new SocketClient() { tls = true };
+        var conn = yield client.connect_to_host_async(this.host, (uint16)this.port, cancellable);
+
+        size_t written;
+        yield conn.output_stream.write_all_async(build_http_request(method, endpoint, headers, body).data,
+            Priority.DEFAULT, cancellable, out written);
+
+        var input = conn.input_stream;
+        var response = new StringBuilder();
+        var buffer = new uint8[4096];
+        ssize_t bytes;
+
+        try {
+            while ((bytes = yield input.read_async(buffer, Priority.DEFAULT, cancellable)) > 0) {
+                response.append_len((string)buffer, (long)bytes);
+            }
+        }
+        catch (Error e) {
+            if (e is IOError.CANCELLED)
+                throw e;
+            // the server may close the TLS connection abruptly once everything is sent
+        }
+
+        return parse_http_response(response);
+    }
+
+    /**
+    * Build the raw HTTP/1.1 request.
+    */
+    private string build_http_request(string method, string endpoint, string[] headers, string body) {
         var request = new StringBuilder();
         request.append("%s %s HTTP/1.1\r\n".printf(method, endpoint));
         request.append("Host: %s\r\n".printf(this.host));
@@ -24,22 +117,16 @@ public abstract class Brain.HttpClient : BrainIa {
         request.append("Content-Length: %d\r\n".printf(body.length));
         request.append("Connection: close\r\n\r\n");
         request.append(body);
+        return request.str;
+    }
 
-        conn.output_stream.write_all(request.str.data, null);
-        
-        var input = new DataInputStream(conn.input_stream);
-        StringBuilder response = new StringBuilder();
-        uint8 buffer[4096];
-        size_t bytes;
-        
-		try {
-			while ((bytes = input.read(buffer)) > 0) {
-				response.append_len((string)buffer, (long)bytes);
-			}
-		}
-		catch (Error e) {
-		}
-
+    /**
+    * Split the raw response, check its status and return its decoded body.
+    * @param response The raw response, headers included.
+    * @return The decoded body.
+    * @throws Error If the response is incomplete or an error without a JSON body.
+    */
+    private string parse_http_response(StringBuilder response) throws Error {
         int sep = response.str.index_of("\r\n\r\n");
         if (sep == -1)
             throw new ResponseError.ApiError("Incomplete HTTP response from %s", this.host);

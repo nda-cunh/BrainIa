@@ -42,7 +42,7 @@ public class Brain.OpenAiCompatible : Brain.HttpClient {
         this.api_key = api_key;
     }
 
-    public override Response? send(string prompt) throws Error {
+    protected override string[] build_request(string prompt, out string endpoint, out string body) throws Error {
         var safe_prompt = prompt.make_valid();
         var doc = new YYJson.MutDoc();
         unowned var root = doc.obj();
@@ -59,16 +59,15 @@ public class Brain.OpenAiCompatible : Brain.HttpClient {
 
         debug("JSON payload sent: %s", payload_utf8);
 
-        var raw = send_request(
-            "POST",
-            this.endpoint,
-            {
-                "Content-Type: application/json",
-                "Authorization: Bearer " + this.api_key,
-            },
-            payload_utf8
-        );
+        endpoint = this.endpoint;
+        body = payload_utf8;
+        return {
+            "Content-Type: application/json",
+            "Authorization: Bearer " + this.api_key,
+        };
+    }
 
+    protected override Response parse_response(string raw) throws Error {
         return new ChatApiResponse(raw);
     }
 }
