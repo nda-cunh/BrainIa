@@ -27,11 +27,18 @@ public class Brain.GeminiResponse: Response {
                 if (content != null) {
                     unowned var parts = content.obj_get("parts");
                     if (parts != null && parts.arr_size() > 0) {
-                        unowned var part = parts.arr_get(0);
-                        if (part != null) {
+                        // every text part, except the thoughts of thinking models
+                        var answer = new StringBuilder();
+                        for (size_t i = 0; i < parts.arr_size(); i++) {
+                            unowned var part = parts.arr_get(i);
+                            unowned var thought = part.obj_get("thought");
                             unowned var text = part.obj_get("text");
-                            if (text != null) return text.get_str();
+                            if (thought != null && thought.get_bool())
+                                continue;
+                            if (text != null && text.get_str() != null)
+                                answer.append(text.get_str());
                         }
+                        return answer.str;
                     }
                 }
             }

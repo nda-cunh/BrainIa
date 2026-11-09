@@ -17,14 +17,18 @@ public class Brain.AnthropicResponse : Brain.Response {
 
         check_api_error(root);
 
-        // {"content": [{"type": "text", "text": "..."}]}
+        // {"content": [{"type": "text", "text": "..."}]}, "thinking" and tool blocks are skipped
         unowned var content = root.obj_get("content");
         if (content != null && content.arr_size() > 0) {
-            unowned var first = content.arr_get(0);
-            if (first != null) {
-                unowned var text = first.obj_get("text");
-                if (text != null) return text.get_str();
+            var answer = new StringBuilder();
+            for (size_t i = 0; i < content.arr_size(); i++) {
+                unowned var block = content.arr_get(i);
+                unowned var type = block.obj_get("type");
+                unowned var text = block.obj_get("text");
+                if (type != null && type.get_str() == "text" && text != null && text.get_str() != null)
+                    answer.append(text.get_str());
             }
+            return answer.str;
         }
 
         throw new ResponseError.UnknownStructure("Unrecognized JSON structure: %s", clean_json);

@@ -23,12 +23,35 @@ public class Brain.ChatApiResponse : Brain.Response {
                 unowned var message = first.obj_get("message");
                 if (message != null) {
                     unowned var content = message.obj_get("content");
-                    if (content != null) return content.get_str();
+                    if (content != null) return text_of_content(content);
                 }
             }
         }
 
         throw new ResponseError.UnknownStructure("Unrecognized JSON structure: %s", clean_json);
+    }
+
+    /**
+    * Text of a message content: either a plain string, or a list of chunks whose
+    * "text" chunks are concatenated (Mistral reasoning models also send "thinking"
+    * chunks, which are skipped). A null content, e.g. tool calls only, gives "".
+    * @param content The "content" value of the message.
+    * @return The text of the answer.
+    */
+    private static string text_of_content(YYJson.Value content) {
+        unowned string? str = content.get_str();
+        if (str != null)
+            return str;
+
+        var text = new StringBuilder();
+        for (size_t i = 0; i < content.arr_size(); i++) {
+            unowned var chunk = content.arr_get(i);
+            unowned var type = chunk.obj_get("type");
+            unowned var chunk_text = chunk.obj_get("text");
+            if (type != null && type.get_str() == "text" && chunk_text != null && chunk_text.get_str() != null)
+                text.append(chunk_text.get_str());
+        }
+        return text.str;
     }
 }
 
