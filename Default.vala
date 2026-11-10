@@ -72,7 +72,7 @@ namespace Brain {
 			case Provider.GEMINI:
 				return new Gemini(model_id, api_key);
 			case Provider.MISTRAL:
-				return new Mistral(model_id, api_key);
+				return new Mistral(Mistral.get_real_name(model_id), api_key);
 			case Provider.ANTHROPIC:
 				return new Anthropic(model_id, api_key);
 			default:

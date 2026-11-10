@@ -49,7 +49,7 @@ public class Brain.Anthropic : Brain.HttpClient {
         var doc = new YYJson.MutDoc();
         unowned var root = doc.obj();
         root.obj_add_str(doc, "model", this.model_id);
-        root.obj_add_int(doc, "max_tokens", 1024);
+        root.obj_add_int(doc, "max_tokens", 32000);
         unowned var messages = root.obj_add_arr(doc, "messages");
         unowned var msg_obj = messages.arr_add_obj(doc);
         msg_obj.obj_add_str(doc, "role", "user");
