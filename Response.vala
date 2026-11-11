@@ -7,6 +7,16 @@ public errordomain Brain.ResponseError {
 public abstract class Brain.Response {
 	public string data_json;
 	public string content;
+	/** Tokens of the prompt, including cached_tokens (0 when the API does not say). */
+	public int input_tokens;
+	/** Tokens generated, including reasoning_tokens. */
+	public int output_tokens;
+	/** Part of input_tokens read from the provider's prompt cache. */
+	public int cached_tokens;
+	/** Part of output_tokens spent thinking (reasoning models). */
+	public int reasoning_tokens;
+	/** Part of input_tokens written to the prompt cache (Anthropic, and OpenAI models that bill it). */
+	public int cache_write_tokens;
 
 	protected Response(string data_json) throws Error {
 		this.data_json = data_json;
@@ -14,6 +24,49 @@ public abstract class Brain.Response {
 	}
 
 	protected abstract string parse_text_from_json(string raw_data) throws Error;
+
+	/**
+	* Fill the token counts from the usage block of the response, whatever the provider:
+	* "usage" with prompt_tokens (OpenAI, Mistral, Glm and other compatible APIs),
+	* "usage" with input_tokens (Anthropic, which counts cached tokens apart) or
+	* "usageMetadata" (Gemini). Missing fields stay at 0.
+	* @param root The root object of the parsed response.
+	*/
+	internal void read_usage (YYJson.Value root) {
+		unowned var usage = root.obj_get("usage");
+		if (usage != null && usage.obj_get("prompt_tokens") != null) {
+			input_tokens = int_of(usage, "prompt_tokens");
+			output_tokens = int_of(usage, "completion_tokens");
+			unowned var pdetails = usage.obj_get("prompt_tokens_details");
+			if (pdetails != null) {
+				cached_tokens = int_of(pdetails, "cached_tokens");
+				cache_write_tokens = int_of(pdetails, "cache_write_tokens");
+			}
+			unowned var cdetails = usage.obj_get("completion_tokens_details");
+			if (cdetails != null)
+				reasoning_tokens = int_of(cdetails, "reasoning_tokens");
+			return;
+		}
+		if (usage != null && usage.obj_get("input_tokens") != null) {
+			cached_tokens = int_of(usage, "cache_read_input_tokens");
+			cache_write_tokens = int_of(usage, "cache_creation_input_tokens");
+			input_tokens = int_of(usage, "input_tokens") + cached_tokens + cache_write_tokens;
+			output_tokens = int_of(usage, "output_tokens");
+			return;
+		}
+		unowned var meta = root.obj_get("usageMetadata");
+		if (meta != null) {
+			input_tokens = int_of(meta, "promptTokenCount");
+			cached_tokens = int_of(meta, "cachedContentTokenCount");
+			reasoning_tokens = int_of(meta, "thoughtsTokenCount");
+			output_tokens = int_of(meta, "candidatesTokenCount") + reasoning_tokens;
+		}
+	}
+
+	private static int int_of (YYJson.Value obj, string key) {
+		unowned var v = obj.obj_get(key);
+		return v != null ? v.get_int() : 0;
+	}
 
 	/**
 	* Raise the error reported by the API, whatever shape it uses.

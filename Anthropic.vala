@@ -16,6 +16,7 @@ public class Brain.AnthropicResponse : Brain.Response {
         unowned var root = doc.get_root();
 
         check_api_error(root);
+        read_usage(root);
 
         // {"content": [{"type": "text", "text": "..."}]}, "thinking" and tool blocks are skipped
         unowned var content = root.obj_get("content");

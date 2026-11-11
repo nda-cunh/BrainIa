@@ -18,6 +18,7 @@ public class Brain.GeminiResponse: Response {
         unowned var root = doc.get_root();
 
         check_api_error(root);
+        read_usage(root);
 
         unowned var candidates = root.obj_get("candidates");
         if (candidates != null && candidates.arr_size() > 0) {

@@ -15,6 +15,7 @@ public class Brain.ChatApiResponse : Brain.Response {
         unowned var root = doc.get_root();
 
         check_api_error(root);
+        read_usage(root);
 
         unowned var choices = root.obj_get("choices");
         if (choices != null) {

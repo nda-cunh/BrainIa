@@ -96,6 +96,21 @@ app.send_async.begin("Hello!", cancellable, (obj, res) => {
 // cancellable.cancel(); to abort the request
 ```
 
+## 📊 Token usage
+
+Every response carries the token counts reported by the provider (OpenAI-compatible,
+Anthropic and Gemini formats), or 0 when the API does not send them:
+
+```vala
+var response = app.send("Hello!");
+print("%d in (%d cached), %d out (%d reasoning)\n",
+      response.input_tokens, response.cached_tokens,
+      response.output_tokens, response.reasoning_tokens);
+```
+
+`input_tokens` includes the cached ones and `output_tokens` the reasoning ones.
+`cache_write_tokens` is the part of the prompt written to the cache (Anthropic, and OpenAI models that bill cache writes).
+
 ## 🔑 Picking the API key
 
 `Brain.provider_of()` tells which provider `create()` will use for a model, so you
