@@ -3,14 +3,15 @@ public abstract class Brain.HttpClient : BrainIa {
     protected int port = 443;
 
     /**
-    * Build the request of a prompt, specific to each provider.
-    * @param prompt The message to send.
+    * Build the request of a conversation, specific to each provider.
+    * @param system The system prompt, or null.
+    * @param messages The user and assistant messages, oldest first.
     * @param endpoint The path to request on the host.
     * @param body The JSON body to send.
     * @return The headers of the request.
     * @throws Error If the payload cannot be serialized.
     */
-    protected abstract string[] build_request(string prompt, out string endpoint, out string body) throws Error;
+    protected abstract string[] build_request(string? system, Message[] messages, out string endpoint, out string body) throws Error;
 
     /**
     * Parse the body answered by the API, specific to each provider.
@@ -21,15 +22,23 @@ public abstract class Brain.HttpClient : BrainIa {
     protected abstract Response parse_response(string raw) throws Error;
 
     public override Response? send(string prompt) throws Error {
+        return send_messages(null, { new Message("user", prompt) });
+    }
+
+    public override async Response? send_async(string prompt, Cancellable? cancellable = null) throws Error {
+        return yield send_messages_async(null, { new Message("user", prompt) }, cancellable);
+    }
+
+    public override Response? send_messages(string? system, Message[] messages) throws Error {
         string endpoint, body;
-        var headers = build_request(prompt, out endpoint, out body);
+        var headers = build_request(system, messages, out endpoint, out body);
         var raw = send_request("POST", endpoint, headers, body);
         return parse_response(raw);
     }
 
-    public override async Response? send_async(string prompt, Cancellable? cancellable = null) throws Error {
+    public override async Response? send_messages_async(string? system, Message[] messages, Cancellable? cancellable = null) throws Error {
         string endpoint, body;
-        var headers = build_request(prompt, out endpoint, out body);
+        var headers = build_request(system, messages, out endpoint, out body);
         var raw = yield send_request_async("POST", endpoint, headers, body, cancellable);
         return parse_response(raw);
     }

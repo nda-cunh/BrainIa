@@ -1,3 +1,17 @@
+/**
+* One message of a conversation sent with send_messages().
+*/
+public class Brain.Message {
+	/** "user" or "assistant". */
+	public string role;
+	public string content;
+
+	public Message(string role, string content) {
+		this.role = role;
+		this.content = content;
+	}
+}
+
 public abstract class Brain.BrainIa {
 	public abstract Response? send(string prompt) throws Error;
 	public string model_id {get; protected set;}
@@ -31,5 +45,33 @@ public abstract class Brain.BrainIa {
 		if (err != null)
 			throw err;
 		return res;
+	}
+
+	/**
+	* Send a whole conversation: a system prompt and the messages, oldest first.
+	* Providers cache prompts per message, so sending the fixed part as the system
+	* prompt and each turn as its own message lets the next request reuse the cache.
+	* The default implementation joins everything into one prompt for send().
+	* @param system The system prompt (instructions), or null.
+	* @param messages The user and assistant messages, oldest first.
+	* @return The response of the model.
+	* @throws Error On network or API error.
+	*/
+	public virtual Response? send_messages(string? system, Message[] messages) throws Error {
+		return send(join_messages(system, messages));
+	}
+
+	/**
+	* Asynchronous version of send_messages(), cancellable like send_async().
+	*/
+	public virtual async Response? send_messages_async(string? system, Message[] messages, Cancellable? cancellable = null) throws Error {
+		return yield send_async(join_messages(system, messages), cancellable);
+	}
+
+	private static string join_messages(string? system, Message[] messages) {
+		var bs = new StringBuilder(system ?? "");
+		foreach (unowned var m in messages)
+			bs.append("\n\n%s: %s".printf(m.role, m.content));
+		return bs.str;
 	}
 }

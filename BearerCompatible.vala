@@ -66,15 +66,21 @@ public class Brain.OpenAiCompatible : Brain.HttpClient {
         this.api_key = api_key;
     }
 
-    protected override string[] build_request(string prompt, out string endpoint, out string body) throws Error {
-        var safe_prompt = prompt.make_valid();
+    protected override string[] build_request(string? system, Message[] messages, out string endpoint, out string body) throws Error {
         var doc = new YYJson.MutDoc();
         unowned var root = doc.obj();
         root.obj_add_str(doc, "model", this.model_id);
-        unowned var messages = root.obj_add_arr(doc, "messages");
-        unowned var msg_obj = messages.arr_add_obj(doc);
-        msg_obj.obj_add_str(doc, "role", "user");
-        msg_obj.obj_add_str(doc, "content", safe_prompt);
+        unowned var list = root.obj_add_arr(doc, "messages");
+        if (system != null) {
+            unowned var sys_obj = list.arr_add_obj(doc);
+            sys_obj.obj_add_str(doc, "role", "system");
+            sys_obj.obj_add_str(doc, "content", system.make_valid());
+        }
+        foreach (unowned var m in messages) {
+            unowned var msg_obj = list.arr_add_obj(doc);
+            msg_obj.obj_add_str(doc, "role", m.role);
+            msg_obj.obj_add_str(doc, "content", m.content.make_valid());
+        }
         doc.set_root(root);
 
         string? payload = doc.write();

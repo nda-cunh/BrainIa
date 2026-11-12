@@ -58,15 +58,23 @@ public class Brain.Gemini: HttpClient {
         this.host = "generativelanguage.googleapis.com";
     }
 
-    protected override string[] build_request(string prompt, out string endpoint, out string body) throws Error {
-        var safe_prompt = prompt.make_valid();
+    protected override string[] build_request(string? system, Message[] messages, out string endpoint, out string body) throws Error {
         var doc = new YYJson.MutDoc();
         unowned var root = doc.obj();
+        if (system != null) {
+            unowned var instruction = root.obj_add_obj(doc, "systemInstruction");
+            unowned var sys_parts = instruction.obj_add_arr(doc, "parts");
+            unowned var sys_part = sys_parts.arr_add_obj(doc);
+            sys_part.obj_add_str(doc, "text", system.make_valid());
+        }
         unowned var contents = root.obj_add_arr(doc, "contents");
-        unowned var content_obj = contents.arr_add_obj(doc);
-        unowned var parts = content_obj.obj_add_arr(doc, "parts");
-        unowned var part_obj = parts.arr_add_obj(doc);
-        part_obj.obj_add_str(doc, "text", safe_prompt);
+        foreach (unowned var m in messages) {
+            unowned var content_obj = contents.arr_add_obj(doc);
+            content_obj.obj_add_str(doc, "role", m.role == "assistant" ? "model" : "user");
+            unowned var parts = content_obj.obj_add_arr(doc, "parts");
+            unowned var part_obj = parts.arr_add_obj(doc);
+            part_obj.obj_add_str(doc, "text", m.content.make_valid());
+        }
         doc.set_root(root);
 
         string? payload = doc.write();

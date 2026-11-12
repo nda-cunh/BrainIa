@@ -95,6 +95,9 @@ namespace YYJson {
         [CCode (cname = "yyjson_mut_obj_add_arr", instance_pos = 1.1)]
         public unowned MutValue? obj_add_arr(MutDoc doc, string key);
 
+        [CCode (cname = "yyjson_mut_obj_add_obj", instance_pos = 1.1)]
+        public unowned MutValue? obj_add_obj(MutDoc doc, string key);
+
         [CCode (cname = "yyjson_mut_arr_add_strcpy", instance_pos = 1.1)]
         public bool arr_add_str(MutDoc doc, string val);
 

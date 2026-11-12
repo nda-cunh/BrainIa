@@ -45,16 +45,19 @@ public class Brain.Anthropic : Brain.HttpClient {
         this.api_key = api_key;
     }
 
-    protected override string[] build_request(string prompt, out string endpoint, out string body) throws Error {
-        var safe_prompt = prompt.make_valid();
+    protected override string[] build_request(string? system, Message[] messages, out string endpoint, out string body) throws Error {
         var doc = new YYJson.MutDoc();
         unowned var root = doc.obj();
         root.obj_add_str(doc, "model", this.model_id);
         root.obj_add_int(doc, "max_tokens", 32000);
-        unowned var messages = root.obj_add_arr(doc, "messages");
-        unowned var msg_obj = messages.arr_add_obj(doc);
-        msg_obj.obj_add_str(doc, "role", "user");
-        msg_obj.obj_add_str(doc, "content", safe_prompt);
+        if (system != null)
+            root.obj_add_str(doc, "system", system.make_valid());
+        unowned var list = root.obj_add_arr(doc, "messages");
+        foreach (unowned var m in messages) {
+            unowned var msg_obj = list.arr_add_obj(doc);
+            msg_obj.obj_add_str(doc, "role", m.role);
+            msg_obj.obj_add_str(doc, "content", m.content.make_valid());
+        }
         doc.set_root(root);
 
         string? payload = doc.write();
