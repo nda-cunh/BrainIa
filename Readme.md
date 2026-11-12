@@ -96,6 +96,24 @@ app.send_async.begin("Hello!", cancellable, (obj, res) => {
 // cancellable.cancel(); to abort the request
 ```
 
+## 💬 Conversations and prompt caching
+
+`send_messages()` sends a system prompt and a list of messages (oldest first).
+Providers cache prompts per message: keep the system prompt identical and only
+append messages, and the next request reads the start of the conversation from
+the cache (`response.cached_tokens`), which is much cheaper.
+
+```vala
+Brain.Message[] messages = {
+    new Brain.Message("user", "Hello!"),
+    new Brain.Message("assistant", "Hi, how can I help?"),
+    new Brain.Message("user", "Tell me a joke."),
+};
+var response = app.send_messages("You are a friendly assistant.", messages);
+```
+
+`send_messages_async()` is the cancellable asynchronous version.
+
 ## 📊 Token usage
 
 Every response carries the token counts reported by the provider (OpenAI-compatible,
